@@ -45,7 +45,7 @@ def ROIselector(picture,item):
         while r==(0,0,0,0):
             r=selectROI(item,picture, fromCenter, showCrosshair)
             if r==(0,0,0,0):
-                root=tk.Tk()
+                root=Tk()
                 root.withdraw()
                 skipQuestion=messagebox.askquestion("Retry?","Press Yes to retry selection or press no to skip this image.")
             time.sleep(1)
@@ -66,42 +66,61 @@ def preProcess(img_path,foldername="/home/neil/wordpress/output"):
     img=imread(str(foldername)+"output.jpg")
     return img
 
+def errorRecursion(fields_to_collect,img,item,fieldStore,img_path):
+    vError=0
+    while vError==0:
+        vError=0
+        for item in fields_to_collect:
+                    try:
+                        imageText=Tesseract(ROIselector(img,item))
+                        print("Is the following correct:")
+                        print(item+": "+imageText)
+                        confirmation=input()
+                        if confirmation=='y'or confirmation=='Y':
+                            fieldStore[item]=imageText
+                        else: 
+                            if confirmation=='n' or confirmation=='N':
+                                print('Enter correct value of field')
+                                imageText=input()
+                                fieldStore[item]=imageText
+                            else:
+                                raise ValueError
+                    except AssertionError:
+                        print('skipping {}...'.format(img_path))
+                        skip.append(img_path)
+                    except ValueError:
+                        root=Tk()
+                        root.withdraw()
+                        messagebox.showwarning('Something other than y or n was input','Type only y or n in the input box')
+                        print('Try again.')
+                        vError=1
+
+
 
 def MainProcess():
-    reviewAfterEveryFile=input('Do you want to review the information collected after each file is finished?(y/n') 
-    if reviewAfterEveryFile not in ['y','n']:
-        raise Exception('Something other than \'y\' or \'n\' was input')
+    V1error=0
+    while V1error==0:
+        try:
+            reviewAfterEveryFile=input('Do you want to review the information collected after each file is finished?(y/n') 
+            if reviewAfterEveryFile not in ['y','n']:
+                raise ValueError
+        except ValueError:
+            root=Tk()
+            root.withdraw()
+            messagebox.showwarning('Something other than y or n was input','Type only y or n in the input box')
+            print('Try again.')
+            vError=1
     root = Tk()
-    root.filename =  filedialog.askdirectory(parent=root,initialdir="/home/neil/Desktop",title='Please select a directory')
+    root.withdraw()
+    root.filename =  filedialog.askdirectory(parent=root,initialdir="/home/neil/Desktop",title='Please select a directory')   
     foldername=str(root.filename)
-    folder_all=listdir(root.filename)
+    folder_all=listdir(foldername)
     imgs=[img for img in folder_all if img[-3:]=='jpg']
     img_paths=[join(root.filename,img) for img in imgs]
     for img_path in img_paths:
         img=preProcess(img_path)
         fieldStore={}
-        for item in fields_to_collect:
-            try:
-                imageText=Tesseract(ROIselector(img,item))
-                print("Is the following correct:")
-                print(item+": "+imageText)
-                confirmation=input()
-                if confirmation=='y'or confirmation=='Y':
-                    fieldStore[item]=imageText
-                else: 
-                    if confirmation=='n' or confirmation=='N':
-                        imageText=input('enter correct value of field')
-                        fieldStore[item]=imageText
-                    else:
-                        raise ValueError
-            except AssertionError:
-                print('skipping {}...'.format(img_path))
-                skip.append(img_path)
-            except ValueError:
-                messagebox.showwarning('Something other than y or n was input','typing anything other than y or n at the input again will result in the program crashing due to error.')
-                print('Try again.')
-                edit here
-
+        errorRecursion(fields_to_collect,img,item,fieldStore,img_path)
         intermediate_field_store={img_path:fieldStore}
         if skipVariable==0:
             if reviewAfterEveryFile=='y':
@@ -124,72 +143,23 @@ def MainProcess():
         else:
             intermediate_field_store={}
             skipVariable=0        
-    
-
-def Files():
-    reviewAfterEveryFile=input('Do you want to review the information collected after each file is finished?(y/n') 
-    if reviewAfterEveryFile not in ['y','n']:
-        raise Exception('Something other than \'y\' or \'n\' was input')
-    root = Tk()
-    root.filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("jpeg files","*.jpg"),("all files","*.*")))
-    files=root.filename
-    imgs=[img for img in files if img[-3:]=='jpg']
-    img_paths=[join(root.filename,img) for img in imgs]
-    for img_path in img_paths:
-        img=preProcess(img_path)
-        fieldStore={}
-        for item in fields_to_collect:
-            imageText=Tesseract(ROIselector(img,item))
-            print("Is the following correct:")
-            print(item+": "+imageText)
-            confirmation=input()
-            if confirmation=='y'or confirmation=='Y':
-                fieldStore[item]=imageText
-            else: 
-                if confirmation=='n' or confirmation=='N':
-                    imageText=input('enter correct value of field')
-                    fieldStore[item]=imageText
-                else:
-                    raise Exception('Something other than y or n was input')
-
-        intermediate_field_store={img_path:fieldStore}
-        if reviewAfterEveryFile=='y':
-            print('The data collected so far is:')
-            for field in fields_to_collect:
-                print(field+": "+str(intermediate_field_store[img_path][field]))
-            confirmation=input('Is the data correct?(y/n)')
-            if confirmation=='y':
-                submissions.update(intermediate_field_store)
-                intermediate_field_store={}
-            else:
-                if confirmation=='n':
-                    intermediate_field_store={}
-                    skip.append(img_path)
-                else:
-                    raise Exception('Something other than y or n was input')
-        else:
-            submissions.update(intermediate_field_store)
-            intermediate_field_store={}
-    process=check_output('rm '+str("/home/neil/wordpress/output")+"output.jpg",shell=True)
-    print(done)
-
+def skip_folder_gen(folder):
 
 n=""
 while n!= "exit":
     print(">>>",end="")
     n=input()
     try:
-        q=shlex.split(n)
-    except ValueError:
-        print('ValueError: No closing quotation marks')
-    if n=='Folder()':
-        MainProcess()
-    else:
-        if n=='Files()':
-            Files()
+        if n=='Folder()':
+            MainProcess()
         else:
-            if n=='help()':
-                print(halp)
+            if n=='Files()':
+                MainProcess(file_folder=1)
             else:
-                raise Exception('CommandNotFoundError: \'{}\' command not found'.format(q))
+                if n=='help()':
+                    print(halp)
+                else:
+                    raise ValueError
+    except ValueError:
+        print('CommandNotFoundError: \'{}\' command not found'.format(n))
 exit()
