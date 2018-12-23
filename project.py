@@ -8,6 +8,7 @@ from pytesseract import image_to_string
 from os import listdir ,path
 from os.path import join
 from tkinter import filedialog
+from tkinter import messagebox
 from tkinter import Tk
 from subprocess import check_output
 from time import sleep
@@ -21,6 +22,7 @@ except ModuleNotFoundError:
 
 #global variable declaration
 skip=[]
+skipVariable=0
 preProcessConstant=100
 fields_to_collect=['name','country']
 submissions={}
@@ -37,14 +39,19 @@ Type exit after the\'>>>\' to close the python terminal and press enter
 #Function Definitons
 def ROIselector(picture,item):
     if __name__ == '__main__' :
-        # Select ROI
         showCrosshair = False
         fromCenter = False
-        r = selectROI(item, picture, fromCenter, showCrosshair)
-        # Crop image
-        imCrop = picture[int(r[1]):int(r[1]+r[3]), int(r[0]):int(r[0]+r[2])]
-        # Display cropped image
-    return imCrop
+        r=(0,0,0,0)
+        while r==(0,0,0,0):
+            r=selectROI(item,picture, fromCenter, showCrosshair)
+            if r==(0,0,0,0):
+                root=tk.Tk()
+                root.withdraw()
+                skipQuestion=messagebox.askquestion("Retry?","Press Yes to retry selection or press no to skip this image.")
+            time.sleep(1)
+            if skipQuestion=='no':
+                skipVariable=1
+                assert skipVariable==0
     
 def Tesseract(img):
     return image_to_string(img)
@@ -74,39 +81,50 @@ def MainProcess():
         img=preProcess(img_path)
         fieldStore={}
         for item in fields_to_collect:
-            imageText=Tesseract(ROIselector(img,item))
-            print("Is the following correct:")
-            print(item+": "+imageText)
-            confirmation=input()
-            if confirmation=='y'or confirmation=='Y':
-                fieldStore[item]=imageText
-            else: 
-                if confirmation=='n' or confirmation=='N':
-                    imageText=input('enter correct value of field')
+            try:
+                imageText=Tesseract(ROIselector(img,item))
+                print("Is the following correct:")
+                print(item+": "+imageText)
+                confirmation=input()
+                if confirmation=='y'or confirmation=='Y':
                     fieldStore[item]=imageText
-                else:
-                    raise Exception('Something other than y or n was input')
+                else: 
+                    if confirmation=='n' or confirmation=='N':
+                        imageText=input('enter correct value of field')
+                        fieldStore[item]=imageText
+                    else:
+                        raise ValueError
+            except AssertionError:
+                print('skipping {}...'.format(img_path))
+                skip.append(img_path)
+            except ValueError:
+                messagebox.showwarning('Something other than y or n was input','typing anything other than y or n at the input again will result in the program crashing due to error.')
+                print('Try again.')
+                edit here
 
         intermediate_field_store={img_path:fieldStore}
-        if reviewAfterEveryFile=='y':
-            print('The data collected so far is:')
-            for field in fields_to_collect:
-                print(field+": "+str(intermediate_field_store[img_path][field]))
-            confirmation=input('Is the data correct?(y/n)')
-            if confirmation=='y':
+        if skipVariable==0:
+            if reviewAfterEveryFile=='y':
+                print('The data collected so far is:')
+                for field in fields_to_collect:
+                    print(field+": "+str(intermediate_field_store[img_path][field]))
+                confirmation=input('Is the data correct?(y/n)')
+                if confirmation=='y':
+                    submissions.update(intermediate_field_store)
+                    intermediate_field_store={}
+                else:
+                    if confirmation=='n':
+                        intermediate_field_store={}
+                        skip.append(img_path)
+                    else:
+                        raise Exception('Something other than y or n was input')
+            else:
                 submissions.update(intermediate_field_store)
                 intermediate_field_store={}
-            else:
-                if confirmation=='n':
-                    intermediate_field_store={}
-                    skip.append(img_path)
-                else:
-                    raise Exception('Something other than y or n was input')
         else:
-            submissions.update(intermediate_field_store)
             intermediate_field_store={}
-    process=check_output('rm '+str("/home/neil/wordpress/output")+"output.jpg",shell=True)
-    print(done)
+            skipVariable=0        
+    
 
 def Files():
     reviewAfterEveryFile=input('Do you want to review the information collected after each file is finished?(y/n') 
