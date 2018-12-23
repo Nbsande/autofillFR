@@ -15,7 +15,7 @@ for n in range(10):
     #p.hotkey('ctrlleft','v')
 p.moveTo(0,0,3)
 p.moveTo(500,500)"""
-from selenium import webdriver
+"""from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 import pyautogui as p
 driver=webdriver.Chrome(executable_path='/home/neil/Desktop/chromedriver')
@@ -24,4 +24,16 @@ assert 'Python' in driver.title
 print(driver.title)
 p.click(808,264)
 p.typewrite('windows\n')
-driver.close()
+driver.close()"""
+
+from pytesseract import image_to_string
+print(image_to_string('/home/neil/wordpress/output/output.jpg'))
+    #for i in range(3):
+    #    arr[arr[:,:,i]<100]=asarray(0)
+    #    arr[arr[:,:,i]!=0]=asarray(255)
+    #print(arr)
+    
+    #scipy.misc.imsave(arr,str(foldername)+"output.jpg")
+   
+    #img=imread(str(foldername)+"output.jpg")
+    #return img
